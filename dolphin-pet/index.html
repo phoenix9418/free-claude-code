@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>小海豚 · 阿豚 — 3D 桌宠 AI Agent</title>
+<link rel="stylesheet" href="./css/style.css" />
+<script type="importmap">
+{
+  "imports": {
+    "three": "./assets/three/build/three.module.js"
+  }
+}
+</script>
+</head>
+<body>
+<div class="aurora" aria-hidden="true">
+  <span class="blob b1"></span>
+  <span class="blob b2"></span>
+  <span class="blob b3"></span>
+  <span class="bubbles"></span>
+</div>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="brand-mark" aria-hidden="true">🐬</span>
+    <div class="brand-text">
+      <strong>小海豚 · 阿豚</strong>
+      <small>3D 桌宠 × AI Agent</small>
+    </div>
+  </div>
+  <div class="topbar-actions">
+    <span id="connChip" class="chip chip-offline" title="AI 连接状态">
+      <i class="dot"></i><span id="connText">离线陪伴</span>
+    </span>
+    <button id="roamBtn" class="btn btn-ghost" type="button" aria-pressed="false">漂浮模式</button>
+    <button id="soundBtn" class="btn btn-ghost" type="button" aria-pressed="true" title="音效">🔊</button>
+    <button id="settingsBtn" class="btn btn-ghost" type="button">设置</button>
+  </div>
+</header>
+
+<main class="layout">
+  <!-- ============ 3D 舞台 ============ -->
+  <section class="stage-card" aria-label="海豚舞台">
+    <div id="heroRig" class="hero-rig">
+      <div class="rig-glow" aria-hidden="true"></div>
+      <div id="heroBubble" class="bubble" role="status" aria-live="polite" hidden></div>
+      <canvas id="hero3dCanvas" aria-label="可拖拽旋转的 3D 海豚"></canvas>
+      <div id="hero2d" class="hero-2d" aria-hidden="true">
+        <svg viewBox="0 0 260 170" class="dolphin-svg">
+          <defs>
+            <linearGradient id="dBody" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#5aa7e8"/>
+              <stop offset="55%" stop-color="#8fc9f2"/>
+              <stop offset="100%" stop-color="#e8f6ff"/>
+            </linearGradient>
+            <linearGradient id="dFin" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#3f8fd0"/>
+              <stop offset="100%" stop-color="#6fb2e6"/>
+            </linearGradient>
+            <radialGradient id="dGlow" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stop-color="#7fd0ff" stop-opacity=".55"/>
+              <stop offset="100%" stop-color="#7fd0ff" stop-opacity="0"/>
+            </radialGradient>
+          </defs>
+          <ellipse cx="130" cy="120" rx="96" ry="30" fill="url(#dGlow)"/>
+          <g class="dolphin-2d-body">
+            <path class="tail" d="M52 92 C36 84 24 70 18 58 C34 62 44 70 50 80 C50 68 48 58 54 48 C62 60 66 74 66 84 Z" fill="url(#dFin)"/>
+            <path class="body" d="M58 88 C78 56 120 42 158 50 C178 54 194 48 208 38 C202 58 188 74 168 82 C140 94 96 98 70 96 C64 95 60 92 58 88 Z" fill="url(#dBody)" stroke="#4f93cf" stroke-width="1.5"/>
+            <path class="fin" d="M132 62 C140 42 154 34 168 34 C160 46 154 58 152 70 Z" fill="url(#dFin)"/>
+            <path class="fin fin-side" d="M118 82 C126 92 136 100 148 104 C136 106 122 102 112 94 Z" fill="url(#dFin)"/>
+            <circle class="eye" cx="176" cy="62" r="4.2" fill="#123a58"/>
+            <circle cx="177.6" cy="60.6" r="1.4" fill="#ffffff"/>
+            <path class="smile" d="M188 70 q8 6 16 2" stroke="#3b7fb5" stroke-width="2" fill="none" stroke-linecap="round"/>
+          </g>
+        </svg>
+      </div>
+      <div id="hero3dLoading" class="loading">
+        <span class="spinner" aria-hidden="true"></span>
+        <p>正在唤醒小海豚…</p>
+      </div>
+      <div class="rig-tools">
+        <button id="mode3dBtn" class="seg is-active" type="button" aria-pressed="true">3D</button>
+        <button id="mode2dBtn" class="seg" type="button" aria-pressed="false">2D</button>
+        <span class="rig-hint">拖拽旋转 · 单击摸摸 · 双击欢呼</span>
+      </div>
+    </div>
+
+    <div class="stat-panel">
+      <div class="stat-head">
+        <span id="moodChip" class="mood-chip">😊 平静</span>
+        <span id="affinityChip" class="affinity-chip">亲密 Lv.1</span>
+      </div>
+      <div class="stat-grid">
+        <div class="stat" data-stat="satiety">
+          <div class="stat-label"><span>饱食</span><b id="satietyVal">80</b></div>
+          <div class="bar"><i id="satietyBar" style="width:80%"></i></div>
+        </div>
+        <div class="stat" data-stat="energy">
+          <div class="stat-label"><span>精力</span><b id="energyVal">80</b></div>
+          <div class="bar"><i id="energyBar" style="width:80%"></i></div>
+        </div>
+        <div class="stat" data-stat="happiness">
+          <div class="stat-label"><span>心情</span><b id="happinessVal">70</b></div>
+          <div class="bar"><i id="happinessBar" style="width:70%"></i></div>
+        </div>
+        <div class="stat" data-stat="affinity">
+          <div class="stat-label"><span>亲密</span><b id="affinityVal">10</b></div>
+          <div class="bar"><i id="affinityBar" style="width:10%"></i></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="actions" role="group" aria-label="桌宠互动">
+      <button class="btn action" data-action="feed" type="button"><span>🍤</span>喂食</button>
+      <button class="btn action" data-action="pet" type="button"><span>🤚</span>摸摸</button>
+      <button class="btn action" data-action="play" type="button"><span>🎾</span>玩耍</button>
+      <button class="btn action" data-action="sleep" type="button"><span>😴</span>睡觉</button>
+      <button class="btn action" data-action="spin" type="button"><span>🌀</span>转圈</button>
+      <button class="btn action" data-action="cheer" type="button"><span>🎉</span>欢呼</button>
+    </div>
+  </section>
+
+  <!-- ============ 聊天 / Agent ============ -->
+  <aside class="chat-card" aria-label="AI 对话">
+    <div class="chat-head">
+      <div class="chat-title">
+        <span class="avatar">🐬</span>
+        <div>
+          <strong>和阿豚聊天</strong>
+          <small id="agentHint">未配置 API Key 时使用本地规则回复</small>
+        </div>
+      </div>
+      <button id="clearChatBtn" class="btn btn-icon" type="button" title="清空对话">🧹</button>
+    </div>
+
+    <div id="chatLog" class="chat-log" aria-live="polite">
+      <div class="msg msg-bot">
+        <div class="bubble-text">嗨，我是阿豚！点击动作按钮，或者直接跟我说说话吧～</div>
+      </div>
+    </div>
+
+    <div class="quick-chips" id="quickChips">
+      <button type="button" data-prompt="陪我聊聊天吧">陪我聊聊天</button>
+      <button type="button" data-prompt="给我讲个冷笑话">讲个笑话</button>
+      <button type="button" data-prompt="喂我吃条小鱼">喂我吃鱼</button>
+      <button type="button" data-prompt="提醒我 10 分钟后喝水">设个提醒</button>
+    </div>
+
+    <form id="chatForm" class="chat-form" autocomplete="off">
+      <textarea id="chatInput" rows="1" placeholder="和阿豚说点什么…（Enter 发送 / Shift+Enter 换行）" aria-label="输入消息"></textarea>
+      <button id="sendBtn" class="btn btn-send" type="submit" aria-label="发送">发送</button>
+    </form>
+    <p class="chat-foot">本地优先：宠物状态与记忆仅保存在本机浏览器</p>
+  </aside>
+</main>
+
+<!-- ============ 设置 ============ -->
+<dialog id="settingsDialog" class="dialog">
+  <form method="dialog" class="dialog-body">
+    <h2>设置</h2>
+    <p class="dialog-note">接入任意 OpenAI 兼容接口即可解锁「智能 Agent」。Key 只保存在本机 localStorage，浏览器端直连存在泄露风险，正式使用请改用自建代理。</p>
+
+    <label class="field">
+      <span>Base URL</span>
+      <input id="cfgBaseUrl" type="url" placeholder="https://api.openai.com/v1" spellcheck="false" />
+    </label>
+    <label class="field">
+      <span>API Key</span>
+      <input id="cfgApiKey" type="password" placeholder="sk-..." spellcheck="false" />
+    </label>
+    <label class="field">
+      <span>模型</span>
+      <input id="cfgModel" type="text" placeholder="gpt-4o-mini" spellcheck="false" />
+    </label>
+
+    <div class="field-row">
+      <label class="switch">
+        <input id="cfgSound" type="checkbox" checked />
+        <span>音效</span>
+      </label>
+      <label class="switch">
+        <input id="cfgReduce" type="checkbox" />
+        <span>降低动效</span>
+      </label>
+    </div>
+
+    <div class="dialog-tools">
+      <button id="testConnBtn" class="btn btn-ghost" type="button">测试连接</button>
+      <button id="forgetBtn" class="btn btn-ghost" type="button">清除记忆</button>
+      <button id="resetPetBtn" class="btn btn-ghost" type="button">重置宠物状态</button>
+    </div>
+
+    <div class="dialog-actions">
+      <button value="cancel" class="btn btn-ghost" type="submit">取消</button>
+      <button id="saveSettingsBtn" value="save" class="btn btn-primary" type="submit">保存</button>
+    </div>
+  </form>
+</dialog>
+
+<div id="contextMenu" class="context-menu" hidden>
+  <button type="button" data-cmd="feed">🍤 喂食</button>
+  <button type="button" data-cmd="play">🎾 玩耍</button>
+  <button type="button" data-cmd="pet">🤚 摸摸</button>
+  <button type="button" data-cmd="sleep">😴 睡觉 / 叫醒</button>
+  <button type="button" data-cmd="talk">💬 和我说话</button>
+  <button type="button" data-cmd="roam">🪂 漂浮模式</button>
+  <button type="button" data-cmd="settings">⚙️ 设置</button>
+</div>
+
+<div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+<script src="./js/dolphin3d.js"></script>
+<script src="./js/pet.js"></script>
+<script src="./js/agent.js"></script>
+<script type="module" src="./js/app.js"></script>
+</body>
+</html>
